@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Detailed Family Tree</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f7fb;
+    margin: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .tree-container {
+    position: relative;
+    max-width: 900px;
+  }
+
+  .generation-label {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    color: #333;
+  }
+
+  .generation {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 60px; /* space for connectors */
+    position: relative;
+  }
+
+  .person {
+    background: #005f99;
+    color: white;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin: 0 20px;
+    width: 140px;
+    box-shadow: 0 6px 15px rgba(0, 95, 153, 0.3);
+    cursor: default;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  .person:hover {
+    background: #0099ff;
+    box-shadow: 0 8px 20px rgba(0, 153, 255, 0.6);
+    transform: translateY(-8px);
+  }
+
+  .person .name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+  }
+
+  .person .info {
+    font-size: 0.9rem;
+    color: #d0e6ff;
+  }
+
+  /* Connector lines container */
+  svg.connector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="tree-container" id="tree">
+
+  <div class="generation-label">Grandparents</div>
+  <div class="generation" id="gen-1">
+    <div class="person" id="gp1">
+      <div class="name">Grandparent 1</div>
+      <div class="info">b. 1940</div>
+    </div>
+    <div class="person" id="gp2">
+      <div class="name">Grandparent 2</div>
+      <div class="info">b. 1942</div>
+    </div>
+  </div>
+
+  <div class="generation-label">Parents</div>
+  <div class="generation" id="gen-2">
+    <div class="person" id="p1">
+      <div class="name">Parent 1</div>
+      <div class="info">b. 1965</div>
+    </div>
+    <div class="person" id="p2">
+      <div class="name">Parent 2</div>
+      <div class="info">b. 1968</div>
+    </div>
+    <div class="person" id="p3">
+      <div class="name">Parent 3</div>
+      <div class="info">b. 1970</div>
+    </div>
+  </div>
+
+  <div class="generation-label">You & Siblings</div>
+  <div class="generation" id="gen-3">
+    <div class="person" id="you">
+      <div class="name">You</div>
+      <div class="info">b. 1990</div>
+    </div>
+    <div class="person" id="sib1">
+      <div class="name">Sibling 1</div>
+      <div class="info">b. 1992</div>
+    </div>
+    <div class="person" id="sib2">
+      <div class="name">Sibling 2</div>
+      <div class="info">b. 1995</div>
+    </div>
+  </div>
+
+  <!-- SVG for connectors -->
+  <svg class="connector" width="100%" height="500px" id="connector-svg"></svg>
+
+</div>
+
+<script>
+  // Function to draw lines between parents and children
+  function drawConnectors() {
+    const svg = document.getElementById('connector-svg');
+    svg.innerHTML = ''; // clear old connectors
+
+    function getCenter(el) {
+      const rect = el.getBoundingClientRect();
+      const parentRect = svg.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2 - parentRect.left,
+        y: rect.top + rect.height / 2 - parentRect.top
+      };
+    }
+
+    // Map of connections: parent IDs to their children IDs
+    const connections = [
+      { parent: ['gp1', 'gp2'], children: ['p1', 'p2', 'p3'] }, 
+      { parent: ['p1', 'p2'], children: ['you', 'sib1', 'sib2'] }
+    ];
+
+    connections.forEach(({parent, children}) => {
+      // Calculate middle point of parents (average of their centers)
+      let parentCenters = parent.map(id => getCenter(document.getElementById(id)));
+      let avgParentX = parentCenters.reduce((sum, c) => sum + c.x, 0) / parentCenters.length;
+      let avgParentY = parentCenters.reduce((sum, c) => sum + c.y, 0) / parentCenters.length;
+
+      children.forEach(childId => {
+        const childCenter = getCenter(document.getElementById(childId));
+
+        // Draw a vertical line down from parents to child's level, then horizontal to child
+        const lineGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        lineGroup.setAttribute("stroke", "#555");
+        lineGroup.setAttribute("stroke-width", "2");
+        lineGroup.setAttribute("fill", "none");
+
+        // Vertical line down from parents center
+        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        vLine.setAttribute("x1", avgParentX);
+        vLine.setAttribute("y1", avgParentY + 30); // 30px below parents boxes
+        vLine.setAttribute("x2", avgParentX);
+        vLine.setAttribute("y2", childCenter.y - 30); // 30px above child boxes
+
+        // Horizontal line from vertical line to child center
+        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        hLine.setAttribute("x1", avgParentX);
+        hLine.setAttribute("y1", childCenter.y - 30);
+        hLine.setAttribute("x2", childCenter.x);
+        hLine.setAttribute("y2", childCenter.y - 30);
+
+        // Vertical line down to child box
+        const vLineChild = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        vLineChild.setAttribute("x1", childCenter.x);
+        vLineChild.setAttribute("y1", childCenter.y - 30);
+        vLineChild.setAttribute("x2", childCenter.x);
+        vLineChild.setAttribute("y2", childCenter.y - 5);
+
+        lineGroup.appendChild(vLine);
+        lineGroup.appendChild(hLine);
+        lineGroup.appendChild(vLineChild);
+        svg.appendChild(lineGroup);
+      });
+    });
+  }
+
+  window.addEventListener('load', drawConnectors);
+  window.addEventListener('resize', drawConnectors);
+
+</script>
+
+</body>
+</html>
